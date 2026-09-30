@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SafetyWalk — Live Location</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  html, body { margin: 0; height: 100%; font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: #0B1226; }
+  #map { position: absolute; inset: 0; }
+  #banner {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 1000;
+    background: rgba(11,18,38,0.92); color: #F5F7FF; padding: 14px 16px;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  }
+  #banner .title { font-weight: 800; font-size: 15px; }
+  #banner .subtitle { font-size: 12px; color: #9AA4C7; margin-top: 2px; }
+  #status { font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 999px; }
+  .status-live { background: #38E1C6; color: #0B1226; }
+  .status-sos { background: #FF4D5E; color: #fff; }
+  .status-ended { background: #6B7597; color: #fff; }
+  #alertBar {
+    position: absolute; bottom: 0; left: 0; right: 0; z-index: 1000;
+    background: #FF4D5E; color: #fff; padding: 14px 16px; text-align: center;
+    font-weight: 700; display: none;
+  }
+</style>
+</head>
+<body>
+  <div id="banner">
+    <div>
+      <div class="title">%%NAME%% is sharing their live location</div>
+      <div class="subtitle">Heading to %%DEST%% • SafetyWalk</div>
+    </div>
+    <div id="status" class="status-live">LIVE</div>
+  </div>
+  <div id="map"></div>
+  <div id="alertBar">🚨 SOS triggered — this person may need help. Consider calling them now.</div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const shareToken = "%%TOKEN%%";
+    const startLat = %%LAT%%;
+    const startLng = %%LNG%%;
+
+    const map = L.map('map').setView([startLat, startLng], 16);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(map);
+
+    const marker = L.marker([startLat, startLng]).addTo(map);
+
+    const socket = io();
+    socket.emit('join', { shareToken });
+
+    socket.on('location', (data) => {
+      marker.setLatLng([data.latitude, data.longitude]);
+      map.panTo([data.latitude, data.longitude]);
+    });
+
+    socket.on('sos', () => {
+      document.getElementById('status').textContent = 'SOS';
+      document.getElementById('status').className = 'status-sos';
+      document.getElementById('alertBar').style.display = 'block';
+    });
+
+    socket.on('arrived', () => {
+      document.getElementById('status').textContent = 'ARRIVED SAFELY';
+      document.getElementById('status').className = 'status-ended';
+    });
+  </script>
+</body>
+</html>
