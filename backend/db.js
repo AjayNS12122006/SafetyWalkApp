@@ -1,4 +1,4 @@
-```javascript
+
 const fs = require('fs');
 const path = require('path');
 const { Low } = require('lowdb');
@@ -16,43 +16,72 @@ const defaultData = {
   safetyReports: [],
 };
 
-fs.mkdirSync(dataDir, { recursive: true });
-
 const adapter = new JSONFile(file);
 const db = new Low(adapter, defaultData);
 
 let initialized = false;
+let initPromise = null;
 
+// Initialize the database safely.
 async function init() {
   if (initialized) return;
 
-  // Ensure the data directory exists before any file operations.
-  await fs.promises.mkdir(dataDir, { recursive: true });
+  // Prevent multiple simultaneous initializations.
+  if (initPromise) return initPromise;
 
-  // Load existing data or initialize an empty database.
+  initPromise = (async () => {
+    await fs.promises.mkdir(dataDir, { recursive: true });
+
+    await db.read();
+
+    if (!db.data || typeof db.data !== 'object') {
+      db.data = { ...defaultData };
+    }
+
+    // Ensure all required collections exist.
+    for (const key of Object.keys(defaultData)) {
+      if (!Array.isArray(db.data[key])) {
+        db.data[key] = [];
+      }
+    }
+
+    // Make sure the directory exists immediately before writing.
+    await fs.promises.mkdir(dataDir, { recursive: true });
+    await db.write();
+
+    initialized = true;
+  })();
+
+  try {
+    await initPromise;
+  } catch (error) {
+    initPromise = null;
+    throw error;
+  }
+}
+
+// Read the latest database data before operations.
+async function ensureReady() {
+  await init();
+
+  // Refresh data from disk before each operation.
   await db.read();
 
   if (!db.data || typeof db.data !== 'object') {
     db.data = { ...defaultData };
   }
 
-  // Ensure every required collection exists.
   for (const key of Object.keys(defaultData)) {
     if (!Array.isArray(db.data[key])) {
       db.data[key] = [];
     }
   }
-
-  // Write the initial database file.
-  await db.write();
-
-  initialized = true;
 }
 
 // Users
 const Users = {
   async create({ name, email, phone, passwordHash }) {
-    await db.read();
+    await ensureReady();
 
     const user = {
       id: nanoid(),
@@ -70,23 +99,27 @@ const Users = {
   },
 
   async findByEmail(email) {
-    await db.read();
+    await ensureReady();
 
-    return db.data.users.find(
-      (user) => user.email === email
-    ) || null;
+    return (
+      db.data.users.find(
+        (user) => user.email === email
+      ) || null
+    );
   },
 
   async findById(id) {
-    await db.read();
+    await ensureReady();
 
-    return db.data.users.find(
-      (user) => user.id === id
-    ) || null;
+    return (
+      db.data.users.find(
+        (user) => user.id === id
+      ) || null
+    );
   },
 
   async updateProfile(id, updates) {
-    await db.read();
+    await ensureReady();
 
     const user = db.data.users.find(
       (item) => item.id === id
@@ -119,7 +152,7 @@ const Users = {
 // Trusted contacts
 const Contacts = {
   async list(userId) {
-    await db.read();
+    await ensureReady();
 
     return db.data.contacts.filter(
       (contact) => contact.userId === userId
@@ -127,7 +160,7 @@ const Contacts = {
   },
 
   async add(userId, { name, phone }) {
-    await db.read();
+    await ensureReady();
 
     const contact = {
       id: nanoid(),
@@ -144,26 +177,32 @@ const Contacts = {
   },
 
   async remove(userId, contactId) {
-    await db.read();
+    await ensureReady();
 
     db.data.contacts = db.data.contacts.filter(
       (contact) =>
-        !(contact.id === contactId && contact.userId === userId)
+        !(
+          contact.id === contactId &&
+          contact.userId === userId
+        )
     );
 
     await db.write();
 
-    return Contacts.list(userId);
+    return db.data.contacts.filter(
+      (contact) => contact.userId === userId
+    );
   },
 
   async findByIds(userId, contactIds) {
-    await db.read();
+    await ensureReady();
 
     const ids = new Set(contactIds || []);
 
     return db.data.contacts.filter(
       (contact) =>
-        contact.userId === userId && ids.has(contact.id)
+        contact.userId === userId &&
+        ids.has(contact.id)
     );
   },
 };
@@ -180,7 +219,7 @@ const Walks = {
       contactIds,
     }
   ) {
-    await db.read();
+    await ensureReady();
 
     const now = Date.now();
 
@@ -207,23 +246,27 @@ const Walks = {
   },
 
   async find(walkId) {
-    await db.read();
+    await ensureReady();
 
-    return db.data.walks.find(
-      (walk) => walk.id === walkId
-    ) || null;
+    return (
+      db.data.walks.find(
+        (walk) => walk.id === walkId
+      ) || null
+    );
   },
 
   async findByShareToken(shareToken) {
-    await db.read();
+    await ensureReady();
 
-    return db.data.walks.find(
-      (walk) => walk.shareToken === shareToken
-    ) || null;
+    return (
+      db.data.walks.find(
+        (walk) => walk.shareToken === shareToken
+      ) || null
+    );
   },
 
   async listForUser(userId) {
-    await db.read();
+    await ensureReady();
 
     return db.data.walks
       .filter((walk) => walk.userId === userId)
@@ -232,7 +275,7 @@ const Walks = {
   },
 
   async updateLocation(walkId, location) {
-    await db.read();
+    await ensureReady();
 
     const walk = db.data.walks.find(
       (item) => item.id === walkId
@@ -251,7 +294,7 @@ const Walks = {
   },
 
   async setShareUrl(walkId, shareUrl) {
-    await db.read();
+    await ensureReady();
 
     const walk = db.data.walks.find(
       (item) => item.id === walkId
@@ -266,7 +309,7 @@ const Walks = {
   },
 
   async setStatus(walkId, status) {
-    await db.read();
+    await ensureReady();
 
     const walk = db.data.walks.find(
       (item) => item.id === walkId
@@ -276,7 +319,9 @@ const Walks = {
 
     walk.status = status;
 
-    if (['arrived', 'sos_auto', 'sos_manual'].includes(status)) {
+    if (
+      ['arrived', 'sos_auto', 'sos_manual'].includes(status)
+    ) {
       walk.endedAt = Date.now();
     }
 
@@ -289,7 +334,7 @@ const Walks = {
 // SOS events
 const SosEvents = {
   async create({ userId, walkId, reason, location }) {
-    await db.read();
+    await ensureReady();
 
     const event = {
       id: nanoid(),
@@ -307,7 +352,7 @@ const SosEvents = {
   },
 
   async listStandaloneForUser(userId) {
-    await db.read();
+    await ensureReady();
 
     return db.data.sosEvents
       .filter(
@@ -322,7 +367,7 @@ const SosEvents = {
 // Community safety reports
 const SafetyReports = {
   async add(userId, { type, lat, lng, comment }) {
-    await db.read();
+    await ensureReady();
 
     const report = {
       id: nanoid(),
@@ -341,7 +386,7 @@ const SafetyReports = {
   },
 
   async listNearby(lat, lng, radiusKm = 5) {
-    await db.read();
+    await ensureReady();
 
     return db.data.safetyReports.filter((report) => {
       const distance =
@@ -364,4 +409,3 @@ module.exports = {
   SosEvents,
   SafetyReports,
 };
-```
