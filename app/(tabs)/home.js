@@ -15,6 +15,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { sendSOS } from '../../lib/sos';
+import { searchPlaces } from '../../lib/ors';
+import { hasValidCoordinates } from '../../lib/coordinates';
 import { getContacts, getHistory, getSession, logoutUser } from '../../lib/storage';
 import { Colors, Radius, Shadow } from '../../lib/theme';
 
@@ -33,6 +35,7 @@ export default function Home() {
   const [loading, setLoading]   = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [sosLoading, setSosLoading] = useState(false);
+  const [findingHome, setFindingHome] = useState(false);
 
   // Pulse animation for the SOS ring
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -56,6 +59,8 @@ export default function Home() {
       const [c, h] = await Promise.all([getContacts(), getHistory()]);
       setContacts(c ?? []);
       setHistory(h ?? []);
+    } catch (error) {
+      Alert.alert('Could not load home data', error.message || 'Please try again.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -64,6 +69,71 @@ export default function Home() {
 
   useEffect(() => { load(); }, [load]);
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  const walkHome = async () => {
+    const home = session?.home;
+    if (hasValidCoordinates(home?.lat, home?.lng)) {
+      router.push({
+        pathname: '/(tabs)/walk',
+        params: {
+          destLat: String(home.lat),
+          destLng: String(home.lng),
+          destLabel: home.label || 'Home',
+        },
+      });
+      return;
+    }
+
+    const address = String(home?.label || session?.address || '').trim();
+    if (!address) {
+      Alert.alert(
+        'Home address not set',
+        'Add your home address in your profile to use Walk Me Home.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Go to Profile', onPress: () => router.push('/(tabs)/profile') },
+        ]
+      );
+      return;
+    }
+
+    setFindingHome(true);
+    try {
+      const places = await searchPlaces(address);
+      const place = places.find((item) => hasValidCoordinates(item.latitude, item.longitude));
+      if (!place) {
+        Alert.alert(
+          'Home address not found',
+          'We could not locate this address. Check it in your profile and try again.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Go to Profile', onPress: () => router.push('/(tabs)/profile') },
+          ]
+        );
+        return;
+      }
+
+      router.push({
+        pathname: '/(tabs)/walk',
+        params: {
+          destLat: String(place.latitude),
+          destLng: String(place.longitude),
+          destLabel: home?.label || address,
+        },
+      });
+    } catch (error) {
+      Alert.alert(
+        'Could not locate home address',
+        error.message || 'Check your connection and try again.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Go to Profile', onPress: () => router.push('/(tabs)/profile') },
+        ]
+      );
+    } finally {
+      setFindingHome(false);
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert('Sign out', 'Are you sure you want to sign out?', [
@@ -208,27 +278,8 @@ export default function Home() {
       {/* ── Walk Me Home ── */}
       <TouchableOpacity
         style={styles.homeCard}
-        onPress={() => {
-          if (session?.home?.lat && session?.home?.lng) {
-            router.push({
-              pathname: '/(tabs)/walk',
-              params: {
-                destLat: String(session.home.lat),
-                destLng: String(session.home.lng),
-                destLabel: session.home.label || 'Home',
-              },
-            });
-          } else {
-            Alert.alert(
-              'Set your home address first',
-              'Add it in your profile so SafetyWalk can route you home in one tap.',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Go to Profile', onPress: () => router.push('/(tabs)/profile') },
-              ]
-            );
-          }
-        }}
+        onPress={walkHome}
+        disabled={findingHome}
         activeOpacity={0.88}
       >
         <View style={styles.homeIconWrap}>
@@ -237,10 +288,15 @@ export default function Home() {
         <View style={{ flex: 1 }}>
           <Text style={styles.homeCardTitle}>Walk Me Home</Text>
           <Text style={styles.homeCardSub} numberOfLines={1}>
-            {session?.home?.label ? `To ${session.home.label}` : 'Set your home address to enable this'}
+            {session?.home?.label || session?.address
+              ? `To ${session.home?.label || session.address}`
+              : 'Set your home address to enable this'}
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={20} color={Colors.textFaint} />
+        {findingHome
+          ? <ActivityIndicator size="small" color={Colors.primary} />
+          : <Ionicons name="chevron-forward" size={20} color={Colors.textFaint} />
+        }
       </TouchableOpacity>
 
       {/* ── Stats row ── */}

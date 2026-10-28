@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getSession, logoutUser, updateProfile } from '../../lib/storage';
 import { searchPlaces } from '../../lib/ors';
+import { hasValidCoordinates } from '../../lib/coordinates';
 import { Colors, Radius, Shadow } from '../../lib/theme';
 
 const BLOOD_GROUPS = ['A+', 'A−', 'B+', 'B−', 'AB+', 'AB−', 'O+', 'O−'];
@@ -37,16 +38,21 @@ export default function Profile() {
   const [loading,  setLoading]  = useState(true);
 
   const load = useCallback(async () => {
-    const s = await getSession();
-    if (!s) { router.replace('/login'); return; }
-    setSession(s);
-    setName(s.name || '');
-    setPhone(s.phone || '');
-    setBloodGroup(s.bloodGroup || '');
-    setAddress(s.address || '');
-    setHomeLabel(s.home?.label || '');
-    setOfficeLabel(s.office?.label || '');
-    setLoading(false);
+    try {
+      const s = await getSession();
+      if (!s) { router.replace('/login'); return; }
+      setSession(s);
+      setName(s.name || '');
+      setPhone(s.phone || '');
+      setBloodGroup(s.bloodGroup || '');
+      setAddress(s.address || '');
+      setHomeLabel(s.home?.label || '');
+      setOfficeLabel(s.office?.label || '');
+    } catch (error) {
+      Alert.alert('Could not load profile', error.message || 'Please try again.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
@@ -61,15 +67,20 @@ export default function Profile() {
         if (!label.trim()) return undefined;
         try {
           const results = await searchPlaces(label.trim());
-          const top = results[0];
-          return top ? { label: label.trim(), lat: top.latitude, lng: top.longitude } : { label: label.trim() };
+          const place = results.find((item) => hasValidCoordinates(item.latitude, item.longitude));
+          return place
+            ? { label: label.trim(), lat: place.latitude, lng: place.longitude }
+            : { label: label.trim() };
         } catch {
           return { label: label.trim() };
         }
       };
-      const [home, office] = await Promise.all([geocode(homeLabel), geocode(officeLabel)]);
+      const [home, office] = await Promise.all([
+        geocode(homeLabel.trim() || address),
+        geocode(officeLabel),
+      ]);
 
-      await updateProfile({
+      const updatedUser = await updateProfile({
         name: name.trim(),
         phone: phone.trim(),
         bloodGroup,
@@ -77,6 +88,9 @@ export default function Profile() {
         home,
         office,
       });
+      setSession((current) => ({ ...current, ...updatedUser }));
+      setHomeLabel(updatedUser.home?.label || '');
+      setOfficeLabel(updatedUser.office?.label || '');
       setEditing(false);
       Alert.alert('Saved', 'Your profile has been updated.');
     } catch (e) {

@@ -23,6 +23,7 @@ import { api } from '../../lib/api';
 import { getSocket, joinWalk } from '../../lib/socket';
 import { sendSOS } from '../../lib/sos';
 import { getContacts, getSession } from '../../lib/storage';
+import { hasValidCoordinates } from '../../lib/coordinates';
 import { Colors, Radius, Shadow } from '../../lib/theme';
 import { getWalkingRoute, searchPlaces } from '../../lib/ors';
 import { findNearbyPlaces, getGoogleWalkingRoute } from '../../lib/googleMaps';
@@ -72,6 +73,7 @@ export default function Walk() {
   const [policeStations, setPoliceStations] = useState([]);
   const [showPolice, setShowPolice]         = useState(false);
   const [loadingPolice, setLoadingPolice]   = useState(false);
+  const [safetyPointsMessage, setSafetyPointsMessage] = useState('');
   const [isSilent, setIsSilent]           = useState(false);
   const [safePoints, setSafePoints]       = useState([]);
 
@@ -92,42 +94,166 @@ export default function Walk() {
   }, []);
 
   useEffect(() => {
-    (async () => {
-      await loadData();
+    let active = true;
+    let locationSubscription = null;
+    let locationTimeout = null;
+
+    const loadScreen = async () => {
       try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
-          const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-          const coords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
-          setMyLocation(coords);
-          setRegion({ ...coords, latitudeDelta: 0.012, longitudeDelta: 0.012 });
+        await loadData();
 
-          // Fetch nearby safety reports
+        if (!active) return;
+
+        const { status } =
+          await Location.requestForegroundPermissionsAsync();
+
+        if (!active) return;
+
+        if (status !== 'granted') {
+          console.warn('Location permission was not granted.');
+          return;
+        }
+
+        let position = null;
+
+        // Avoid leaving the map spinner running indefinitely while GPS responds.
+        try {
+          position = await Promise.race([
+            Location.getCurrentPositionAsync({
+              accuracy: Location.Accuracy.Balanced,
+            }),
+            new Promise((_, reject) => {
+              locationTimeout = setTimeout(
+                () => reject(new Error('Location request timed out')),
+                12000
+              );
+            }),
+          ]);
+        } catch (locationError) {
+          console.warn(
+            'Could not get current location; trying the last known location.',
+            locationError
+          );
+
           try {
-             const { data } = await api.get('/safety/nearby', { params: { lat: coords.latitude, lng: coords.longitude, radius: 5 } });
-             setSafePoints(data.reports || []);
-          } catch (e) { console.warn('Could not load safety reports', e); }
+            position = await Location.getLastKnownPositionAsync();
+          } catch (lastLocationError) {
+            console.warn('Last known location unavailable.', lastLocationError);
+          }
+        } finally {
+          if (locationTimeout) clearTimeout(locationTimeout);
+        }
 
-          locationRef.current = await Location.watchPositionAsync(
-            { accuracy: Location.Accuracy.Balanced, timeInterval: 4000, distanceInterval: 8 },
-            (update) => {
-              setMyLocation({ latitude: update.coords.latitude, longitude: update.coords.longitude });
-            }
+        if (!active) return;
+
+        if (position?.coords) {
+          const coords = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          };
+
+          setMyLocation(coords);
+          setRegion({
+            ...coords,
+            latitudeDelta: 0.012,
+            longitudeDelta: 0.012,
+          });
+
+          // Load safety reports in the background so they cannot block the map.
+          api
+            .get('/safety/nearby', {
+              params: {
+                lat: coords.latitude,
+                lng: coords.longitude,
+                radius: 5,
+              },
+            })
+            .then(({ data }) => {
+              if (!active) return;
+              if (!Array.isArray(data?.reports)) {
+                console.warn('Safety reports response did not contain a reports array.');
+                return;
+              }
+              setSafePoints(
+                data.reports
+                  .filter((report) => hasValidCoordinates(report?.lat, report?.lng))
+                  .map((report) => ({
+                    ...report,
+                    lat: Number(report.lat),
+                    lng: Number(report.lng),
+                  }))
+              );
+            })
+            .catch((error) => {
+              console.warn('Could not load safety reports:', error);
+              if (active) {
+                Alert.alert('Could not load safety reports', error.message);
+              }
+            });
+        } else {
+          console.warn(
+            'No GPS position is available. Check that Location is enabled on the phone.'
           );
         }
+
+        // Start ongoing updates after the initial position attempt.
+        try {
+          const subscription = await Location.watchPositionAsync(
+            {
+              accuracy: Location.Accuracy.Balanced,
+              timeInterval: 4000,
+              distanceInterval: 8,
+            },
+            (update) => {
+              if (!active) return;
+
+              const coords = {
+                latitude: update.coords.latitude,
+                longitude: update.coords.longitude,
+              };
+
+              setMyLocation(coords);
+              setRegion((previous) => ({
+                ...coords,
+                latitudeDelta: previous?.latitudeDelta ?? 0.012,
+                longitudeDelta: previous?.longitudeDelta ?? 0.012,
+              }));
+            }
+          );
+
+          if (active) {
+            locationSubscription = subscription;
+            locationRef.current = subscription;
+          } else {
+            subscription?.remove?.();
+          }
+        } catch (watchError) {
+          console.warn('Could not start location tracking:', watchError);
+        }
+      } catch (error) {
+        console.warn('Could not initialize the Walk screen:', error);
       } finally {
-        setLoadingMap(false);
+        if (active) setLoadingMap(false);
       }
-    })();
+    };
+
+    loadScreen();
 
     const socket = getSocket();
-    const onAutoSos = () =>
-      Alert.alert('Auto-SOS sent', 'You missed your check-in. Your contacts have been alerted.');
+
+    const onAutoSos = () => {
+      Alert.alert(
+        'Auto-SOS sent',
+        'You missed your check-in. Your contacts have been alerted.'
+      );
+    };
 
     const onSosWarning = ({ secondsLeft }) => {
       Alert.alert(
         'Are you safe?',
-        `Your walk ETA is almost up (${Math.round(secondsLeft / 60)} min left). Tap "I'm Safe" to cancel the auto-SOS.`,
+        `Your walk ETA is almost up (${Math.round(
+          secondsLeft / 60
+        )} min left). Tap "I'm Safe" to cancel the auto-SOS.`,
         [{ text: 'I am safe', onPress: arrivedSafely }]
       );
     };
@@ -136,11 +262,19 @@ export default function Walk() {
     socket.on('sos:warning', onSosWarning);
 
     return () => {
+      active = false;
+
+      if (locationTimeout) clearTimeout(locationTimeout);
+
       socket.off('sos:auto', onAutoSos);
       socket.off('sos:warning', onSosWarning);
+
       clearInterval(tickRef.current);
       clearInterval(pushRef.current);
+
+      locationSubscription?.remove?.();
       locationRef.current?.remove?.();
+      locationRef.current = null;
     };
   }, [loadData]);
 
@@ -149,8 +283,13 @@ export default function Walk() {
   // "Walk Me Home" (or any other screen) can deep-link in with a destination
   // already chosen via router params, so the user doesn't have to search again.
   useEffect(() => {
-    if (params?.destLat && params?.destLng && !destination) {
-      const coords = { latitude: parseFloat(params.destLat), longitude: parseFloat(params.destLng) };
+    if (
+      hasValidCoordinates(params?.destLat, params?.destLng)
+      && !destination
+    ) {
+      const latitude = Number(params.destLat);
+      const longitude = Number(params.destLng);
+      const coords = { latitude, longitude };
       setDestination(coords);
       setDestLabel(params.destLabel ? String(params.destLabel) : 'Home');
       mapRef.current?.animateToRegion({ ...coords, latitudeDelta: 0.012, longitudeDelta: 0.012 }, 500);
@@ -258,29 +397,39 @@ export default function Walk() {
   };
 
   const toggleNearbyPolice = async () => {
-    if (showPolice) { setShowPolice(false); return; }
+    if (showPolice) {
+      setShowPolice(false);
+      setSafetyPointsMessage('');
+      return;
+    }
     setShowPolice(true);
     if (policeStations.length > 0) return;
     const around = destination || myLocation;
-    if (!around) return;
+    if (!around) {
+      setSafetyPointsMessage('Your location is unavailable. Enable location access or choose a map destination.');
+      return;
+    }
     setLoadingPolice(true);
+    setSafetyPointsMessage('');
     try {
       // Free OSM/Overpass lookup - no API key, no billing.
       const stations = await findSafePlaces(around, 2000, ['police', 'hospital', 'pharmacy']);
       setPoliceStations(stations);
       if (stations.length === 0) {
-        Alert.alert('No safety points found', 'None within 2km of this area.');
+        setSafetyPointsMessage('No safety points were returned within 2 km of this area.');
       }
     } catch (e) {
-      Alert.alert('Could not load safety points', e.message);
-      setShowPolice(false);
+      setSafetyPointsMessage(`Could not load safety points. ${e.message}`);
     } finally {
       setLoadingPolice(false);
     }
   };
 
   const routeToNearestSafePlace = async () => {
-    if (!myLocation) return;
+    if (!myLocation) {
+      Alert.alert('Location unavailable', 'Enable location access and try again.');
+      return;
+    }
     setLoadingPolice(true);
     try {
       // Free OSM/Overpass lookup - no API key, no billing. Already sorted nearest-first.
@@ -531,7 +680,7 @@ export default function Walk() {
           <View style={styles.activeBtns}>
             <TouchableOpacity style={styles.arrivedBtn} onPress={arrivedSafely} activeOpacity={0.85}>
               <Ionicons name="checkmark-circle" size={20} color={Colors.bg} />
-              <Text style={styles.arrivedBtnText}>I've Arrived Safely</Text>
+              <Text style={styles.arrivedBtnText}>I&apos;ve Arrived Safely</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.sosTinyBtn, isSilent && styles.silentBtn]}
@@ -628,6 +777,9 @@ export default function Walk() {
               </TouchableOpacity>
             )}
           </View>
+          {showPolice && !!safetyPointsMessage && (
+            <Text style={styles.safetyPointsMessage}>{safetyPointsMessage}</Text>
+          )}
           {showPolice && policeStations.length > 0 && (
             <View style={styles.policeList}>
               {policeStations.slice(0, 4).map((p) => (
@@ -794,6 +946,9 @@ const styles = StyleSheet.create({
   },
   policeName: { color: Colors.text, fontSize: 13, flex: 1 },
   policeDistance: { color: Colors.textFaint, fontSize: 11 },
+  safetyPointsMessage: {
+    color: Colors.textMuted, fontSize: 12, marginTop: 8,
+  },
   label: { color: Colors.text, fontSize: 14, fontWeight: '700', marginTop: 18, marginBottom: 10 },
   etaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
   etaChip: {
