@@ -15,7 +15,11 @@
     "jsonwebtoken": "^9.0.2",
     "lowdb": "^7.0.1",
     "nanoid": "^5.0.7",
+<<<<<<< HEAD
     "socket.io": "^4.7.5",
     "twilio": "^5.3.4"
+=======
+    "socket.io": "^4.7.5"
+>>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
   }
 }

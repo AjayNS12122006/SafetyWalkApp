@@ -169,6 +169,7 @@ export default function History() {
 
             <View style={styles.detailGrid}>
               <DetailRow icon="calendar-outline"    label="Started"   value={formatDate(detail.startedAt)} />
+<<<<<<< HEAD
               {detail.endedAt && detail.kind !== 'sos' && (
                 <DetailRow icon="checkmark-done-outline" label="Ended" value={formatDate(detail.endedAt)} />
               )}
@@ -179,6 +180,13 @@ export default function History() {
                 <DetailRow icon="information-circle-outline" label="Reason" value={detail.reason} />
               )}
               {detail.kind !== 'sos' && detail.endedAt && detail.startedAt && (
+=======
+              {detail.endedAt && (
+                <DetailRow icon="checkmark-done-outline" label="Ended" value={formatDate(detail.endedAt)} />
+              )}
+              <DetailRow icon="timer-outline"       label="ETA set"   value={`${detail.etaMinutes} min`} />
+              {detail.endedAt && detail.startedAt && (
+>>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
                 <DetailRow
                   icon="hourglass-outline"
                   label="Duration"
