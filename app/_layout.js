@@ -2,10 +2,7 @@ import { DarkTheme, ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
-<<<<<<< HEAD
 import "../lib/webAlert";
-=======
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
 
 export default function RootLayout() {
   return (

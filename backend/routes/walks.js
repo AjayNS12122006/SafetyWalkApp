@@ -1,5 +1,4 @@
 const express = require('express');
-<<<<<<< HEAD
 const { Walks, SosEvents, Contacts, Users } = require('../db');
 const { requireAuth } = require('../auth');
 const { sendSOSText } = require('../lib/twilio');
@@ -27,10 +26,6 @@ async function textTrustedContacts(walk, { reason, location }) {
 
   await sendSOSText(numbers, body.trim());
 }
-=======
-const { Walks, SosEvents, Contacts } = require('../db');
-const { requireAuth } = require('../auth');
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
 
 // In-memory map of walkId -> { main: Timer, warning: Timer }. This is what makes auto-SOS fire
 // even if the walker never opens the app again before the deadline -
@@ -73,14 +68,11 @@ module.exports = function walksRouter(io) {
     // Also nudge the walker's own device (if still connected) so it can
     // fire the native SMS composer as a redundant delivery channel.
     io.to(`user:${walk.userId}`).emit('sos:auto', { walkId: walk.id });
-<<<<<<< HEAD
 
     // Primary delivery path: the server texts every trusted contact
     // directly via Twilio, so this alert doesn't depend on the walker's
     // phone being on, unlocked, or even in the room's socket anymore.
     await textTrustedContacts(fresh, { reason: event.reason, location: fresh.lastLocation });
-=======
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
   }
 
   router.use(requireAuth);
@@ -107,13 +99,9 @@ module.exports = function walksRouter(io) {
     timers.set(walk.id, { main: mainTimer, warning: warningTimer });
 
     const shareUrl = `${req.protocol}://${req.get('host')}/view/${walk.shareToken}`;
-<<<<<<< HEAD
     await Walks.setShareUrl(walk.id, shareUrl);
 
     res.status(201).json({ walk: { ...walk, shareUrl }, shareUrl });
-=======
-    res.status(201).json({ walk, shareUrl });
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
   });
 
   // Walker's phone streams periodic location updates while the walk is active
@@ -164,7 +152,6 @@ module.exports = function walksRouter(io) {
       location: walk.lastLocation,
     });
     io.to(roomFor(walk.shareToken)).emit('sos', { reason: event.reason, location: walk.lastLocation, at: event.createdAt });
-<<<<<<< HEAD
 
     await textTrustedContacts(walk, { reason: event.reason, location: walk.lastLocation });
 
@@ -198,14 +185,6 @@ module.exports = function walksRouter(io) {
     const merged = [...walkItems, ...sosItems].sort((a, b) => b.startedAt - a.startedAt);
 
     res.json({ walks: merged });
-=======
-    res.json({ ok: true });
-  });
-
-  // Walk / SOS history for the logged-in user
-  router.get('/history', async (req, res) => {
-    res.json({ walks: await Walks.listForUser(req.user.sub) });
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
   });
 
   return router;

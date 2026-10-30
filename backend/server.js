@@ -68,17 +68,11 @@ async function main() {
     });
   });
 
-<<<<<<< HEAD
   
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`SafetyWalk backend listening on port ${PORT}`);
 });
 
-=======
-  server.listen(PORT, () => {
-    console.log(`SafetyWalk backend listening on http://localhost:${PORT}`);
-  });
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
 }
 
 main();

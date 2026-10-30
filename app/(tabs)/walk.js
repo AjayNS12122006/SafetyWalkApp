@@ -23,17 +23,11 @@ import { api } from '../../lib/api';
 import { getSocket, joinWalk } from '../../lib/socket';
 import { sendSOS } from '../../lib/sos';
 import { getContacts, getSession } from '../../lib/storage';
-<<<<<<< HEAD
 import { hasValidCoordinates } from '../../lib/coordinates';
 import { Colors, Radius, Shadow } from '../../lib/theme';
 import { getWalkingRoute, searchPlaces } from '../../lib/ors';
 import { findNearbyPlaces, getGoogleWalkingRoute } from '../../lib/googleMaps';
 import { findSafePlaces } from '../../lib/safePlaces';
-=======
-import { Colors, Radius, Shadow } from '../../lib/theme';
-import { getWalkingRoute, searchPlaces } from '../../lib/ors';
-import { findNearbyPlaces, getGoogleWalkingRoute } from '../../lib/googleMaps';
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
 import { shareToWhatsApp } from '../../lib/whatsapp';
 
 const ETA_OPTIONS = [10, 20, 30, 45, 60];
@@ -79,10 +73,7 @@ export default function Walk() {
   const [policeStations, setPoliceStations] = useState([]);
   const [showPolice, setShowPolice]         = useState(false);
   const [loadingPolice, setLoadingPolice]   = useState(false);
-<<<<<<< HEAD
   const [safetyPointsMessage, setSafetyPointsMessage] = useState('');
-=======
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
   const [isSilent, setIsSilent]           = useState(false);
   const [safePoints, setSafePoints]       = useState([]);
 
@@ -103,7 +94,6 @@ export default function Walk() {
   }, []);
 
   useEffect(() => {
-<<<<<<< HEAD
     let active = true;
     let locationSubscription = null;
     let locationTimeout = null;
@@ -257,50 +247,13 @@ export default function Walk() {
         'You missed your check-in. Your contacts have been alerted.'
       );
     };
-=======
-    (async () => {
-      await loadData();
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
-          const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-          const coords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
-          setMyLocation(coords);
-          setRegion({ ...coords, latitudeDelta: 0.012, longitudeDelta: 0.012 });
-
-          // Fetch nearby safety reports
-          try {
-             const { data } = await api.get('/safety/nearby', { params: { lat: coords.latitude, lng: coords.longitude, radius: 5 } });
-             setSafePoints(data.reports || []);
-          } catch (e) { console.warn('Could not load safety reports', e); }
-
-          locationRef.current = await Location.watchPositionAsync(
-            { accuracy: Location.Accuracy.Balanced, timeInterval: 4000, distanceInterval: 8 },
-            (update) => {
-              setMyLocation({ latitude: update.coords.latitude, longitude: update.coords.longitude });
-            }
-          );
-        }
-      } finally {
-        setLoadingMap(false);
-      }
-    })();
-
-    const socket = getSocket();
-    const onAutoSos = () =>
-      Alert.alert('Auto-SOS sent', 'You missed your check-in. Your contacts have been alerted.');
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
 
     const onSosWarning = ({ secondsLeft }) => {
       Alert.alert(
         'Are you safe?',
-<<<<<<< HEAD
         `Your walk ETA is almost up (${Math.round(
           secondsLeft / 60
         )} min left). Tap "I'm Safe" to cancel the auto-SOS.`,
-=======
-        `Your walk ETA is almost up (${Math.round(secondsLeft / 60)} min left). Tap "I'm Safe" to cancel the auto-SOS.`,
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
         [{ text: 'I am safe', onPress: arrivedSafely }]
       );
     };
@@ -309,7 +262,6 @@ export default function Walk() {
     socket.on('sos:warning', onSosWarning);
 
     return () => {
-<<<<<<< HEAD
       active = false;
 
       if (locationTimeout) clearTimeout(locationTimeout);
@@ -323,13 +275,6 @@ export default function Walk() {
       locationSubscription?.remove?.();
       locationRef.current?.remove?.();
       locationRef.current = null;
-=======
-      socket.off('sos:auto', onAutoSos);
-      socket.off('sos:warning', onSosWarning);
-      clearInterval(tickRef.current);
-      clearInterval(pushRef.current);
-      locationRef.current?.remove?.();
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
     };
   }, [loadData]);
 
@@ -338,7 +283,6 @@ export default function Walk() {
   // "Walk Me Home" (or any other screen) can deep-link in with a destination
   // already chosen via router params, so the user doesn't have to search again.
   useEffect(() => {
-<<<<<<< HEAD
     if (
       hasValidCoordinates(params?.destLat, params?.destLng)
       && !destination
@@ -346,10 +290,6 @@ export default function Walk() {
       const latitude = Number(params.destLat);
       const longitude = Number(params.destLng);
       const coords = { latitude, longitude };
-=======
-    if (params?.destLat && params?.destLng && !destination) {
-      const coords = { latitude: parseFloat(params.destLat), longitude: parseFloat(params.destLng) };
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
       setDestination(coords);
       setDestLabel(params.destLabel ? String(params.destLabel) : 'Home');
       mapRef.current?.animateToRegion({ ...coords, latitudeDelta: 0.012, longitudeDelta: 0.012 }, 500);
@@ -432,7 +372,6 @@ export default function Walk() {
   // Real pedestrian route (follows footpaths/roads) via Google Maps or OpenRouteService -
   // this is the "safe route", as opposed to a straight line through buildings.
   const fetchRoute = async (from, to) => {
-<<<<<<< HEAD
     // ORS is the primary router here (its free key is already configured in
     // .env) - Google Directions only gets used if EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
     // is set, since it needs a paid, billing-enabled key otherwise.
@@ -454,28 +393,10 @@ export default function Walk() {
     } catch (orsError) {
       setRoute([]);
       setRouteInfo(null);
-=======
-    try {
-      // Prefer Google for better pedestrian pathing
-      const { route: coords, distanceMeters, durationSeconds } = await getGoogleWalkingRoute(from, to);
-      setRoute(coords);
-      setRouteInfo({ distanceMeters, durationSeconds });
-    } catch (googleError) {
-      console.warn('Google routing failed, trying ORS fallback', googleError);
-      try {
-        const { route: coords, distanceMeters, durationSeconds } = await getWalkingRoute(from, to);
-        setRoute(coords);
-        setRouteInfo({ distanceMeters, durationSeconds });
-      } catch (orsError) {
-        setRoute([]);
-        setRouteInfo(null);
-      }
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
     }
   };
 
   const toggleNearbyPolice = async () => {
-<<<<<<< HEAD
     if (showPolice) {
       setShowPolice(false);
       setSafetyPointsMessage('');
@@ -499,30 +420,12 @@ export default function Walk() {
       }
     } catch (e) {
       setSafetyPointsMessage(`Could not load safety points. ${e.message}`);
-=======
-    if (showPolice) { setShowPolice(false); return; }
-    setShowPolice(true);
-    if (policeStations.length > 0) return;
-    const around = destination || myLocation;
-    if (!around) return;
-    setLoadingPolice(true);
-    try {
-      const stations = await findNearbyPlaces(around, 2000, ['police', 'hospital', 'pharmacy']);
-      setPoliceStations(stations);
-      if (stations.length === 0) {
-        Alert.alert('No safety points found', 'None within 2km of this area.');
-      }
-    } catch (e) {
-      Alert.alert('Could not load safety points', e.message);
-      setShowPolice(false);
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
     } finally {
       setLoadingPolice(false);
     }
   };
 
   const routeToNearestSafePlace = async () => {
-<<<<<<< HEAD
     if (!myLocation) {
       Alert.alert('Location unavailable', 'Enable location access and try again.');
       return;
@@ -531,12 +434,6 @@ export default function Walk() {
     try {
       // Free OSM/Overpass lookup - no API key, no billing. Already sorted nearest-first.
       const places = await findSafePlaces(myLocation, 3000, ['police', 'hospital']);
-=======
-    if (!myLocation) return;
-    setLoadingPolice(true);
-    try {
-      const places = await findNearbyPlaces(myLocation, 3000, ['police', 'hospital']);
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
       if (places.length === 0) {
         Alert.alert('None found', 'No police or hospitals within 3km.');
         return;
@@ -592,7 +489,6 @@ export default function Walk() {
       const nums     = selectedContacts.map((c) => c.phone).filter(Boolean);
       const sep      = Platform.OS === 'ios' ? '&' : ';';
       const smsUrl   = `sms:${nums.join(sep)}${Platform.OS === 'ios' ? '&' : '?'}body=${encodeURIComponent(msg)}`;
-<<<<<<< HEAD
       if (Platform.OS === 'web') {
         // Desktop browsers can't open sms: links, so share/copy the live link instead.
         try {
@@ -606,9 +502,6 @@ export default function Walk() {
       } else if (await Linking.canOpenURL(smsUrl)) {
         await Linking.openURL(smsUrl);
       }
-=======
-      if (await Linking.canOpenURL(smsUrl)) await Linking.openURL(smsUrl);
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
 
       joinWalk(data.walk.shareToken);
       setWalk({ ...data.walk, shareUrl: data.shareUrl });
@@ -787,11 +680,7 @@ export default function Walk() {
           <View style={styles.activeBtns}>
             <TouchableOpacity style={styles.arrivedBtn} onPress={arrivedSafely} activeOpacity={0.85}>
               <Ionicons name="checkmark-circle" size={20} color={Colors.bg} />
-<<<<<<< HEAD
               <Text style={styles.arrivedBtnText}>I&apos;ve Arrived Safely</Text>
-=======
-              <Text style={styles.arrivedBtnText}>I've Arrived Safely</Text>
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.sosTinyBtn, isSilent && styles.silentBtn]}
@@ -888,12 +777,9 @@ export default function Walk() {
               </TouchableOpacity>
             )}
           </View>
-<<<<<<< HEAD
           {showPolice && !!safetyPointsMessage && (
             <Text style={styles.safetyPointsMessage}>{safetyPointsMessage}</Text>
           )}
-=======
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
           {showPolice && policeStations.length > 0 && (
             <View style={styles.policeList}>
               {policeStations.slice(0, 4).map((p) => (
@@ -1060,12 +946,9 @@ const styles = StyleSheet.create({
   },
   policeName: { color: Colors.text, fontSize: 13, flex: 1 },
   policeDistance: { color: Colors.textFaint, fontSize: 11 },
-<<<<<<< HEAD
   safetyPointsMessage: {
     color: Colors.textMuted, fontSize: 12, marginTop: 8,
   },
-=======
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
   label: { color: Colors.text, fontSize: 14, fontWeight: '700', marginTop: 18, marginBottom: 10 },
   etaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
   etaChip: {

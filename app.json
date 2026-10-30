@@ -1,7 +1,4 @@
-<<<<<<< HEAD
 
-=======
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
 {
   "expo": {
     "name": "SafetyWalkApp",
@@ -14,25 +11,19 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-<<<<<<< HEAD
       "bundleIdentifier": "com.safetywalk.app",
-=======
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "SafetyWalk needs your location to share it with your trusted contacts during a walk and to send SOS alerts.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "SafetyWalk needs your location to keep sharing it with your trusted contacts while a Safety Walk is active."
       }
     },
     "android": {
-<<<<<<< HEAD
       "package": "com.safetywalk.app",
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyD1p3lNtwgAV-ojgNUFXk1T4plvBCUIKJ0"
         }
       },
-=======
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -41,7 +32,6 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-<<<<<<< HEAD
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
@@ -50,9 +40,6 @@
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
       ]
-=======
-      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION", "SEND_SMS", "CALL_PHONE"]
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
     },
     "web": {
       "output": "static",
@@ -77,26 +64,19 @@
             "backgroundColor": "#000000"
           }
         }
-<<<<<<< HEAD
       ],
       "expo-asset",
       "expo-audio"
-=======
-      ]
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-<<<<<<< HEAD
     },
     "extra": {
       "router": {},
       "eas": {
         "projectId": "c5118a4b-706d-4f06-b7eb-daae2ed34172"
       }
-=======
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
     }
   }
 }

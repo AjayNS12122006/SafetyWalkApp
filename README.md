@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # SafetyWalk 🛡️
 
 ## Run the full app (backend + mobile)
@@ -12,10 +11,9 @@ npm start
 This runs on `http://localhost:4000` and stores data in `backend/data/db.json`.
 
 **2. Point the app at your backend**
-Edit `lib/config.js` and set `API_HOST` to your computer's LAN IP (find it
+Set `EXPO_PUBLIC_API_BASE_URL` in `.env` (e.g. `http://192.168.1.5:4000`, or your HTTPS host for installed builds). Your computer's LAN IP (find it
 with `ipconfig getifaddr en0` on Mac, `ipconfig` on Windows, or `hostname -I`
-on Linux). `localhost` won't work from a phone — see the comment in that
-file for details.
+on Linux). `localhost` won't work from a phone. Installed Android APKs block plain `http://`, so use an HTTPS backend for EAS builds.
 
 **3. Install and start the app**
 ```bash
@@ -79,6 +77,3 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
-=======
-# SafetyWalkApp
->>>>>>> cf34fbed8daca6320b6e253810ce421736929db3

@@ -1,5 +1,4 @@
 const express = require('express');
-<<<<<<< HEAD
 const { SosEvents, Contacts, Users } = require('../db');
 const { requireAuth } = require('../auth');
 const { sendSOSText } = require('../lib/twilio');
@@ -8,10 +7,6 @@ function mapsLink(location) {
   if (!location) return '';
   return `https://maps.google.com/?q=${location.latitude},${location.longitude}`;
 }
-=======
-const { SosEvents } = require('../db');
-const { requireAuth } = require('../auth');
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
 
 module.exports = function sosRouter(io) {
   const router = express.Router();
@@ -19,15 +14,11 @@ module.exports = function sosRouter(io) {
 
   router.post('/', async (req, res) => {
     const { latitude, longitude, reason } = req.body || {};
-<<<<<<< HEAD
     const location = latitude != null ? { latitude, longitude } : null;
-=======
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
     const event = await SosEvents.create({
       userId: req.user.sub,
       walkId: null,
       reason: reason || 'Manual SOS',
-<<<<<<< HEAD
       location,
     });
     io.to(`user:${req.user.sub}`).emit('sos:ack', { id: event.id });
@@ -52,12 +43,6 @@ module.exports = function sosRouter(io) {
     } catch (err) {
       console.error('[sos] failed to text trusted contacts:', err.message);
     }
-=======
-      location: latitude != null ? { latitude, longitude } : null,
-    });
-    io.to(`user:${req.user.sub}`).emit('sos:ack', { id: event.id });
-    res.status(201).json({ event });
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
   });
 
   return router;

@@ -15,11 +15,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { sendSOS } from '../../lib/sos';
-<<<<<<< HEAD
 import { searchPlaces } from '../../lib/ors';
 import { hasValidCoordinates } from '../../lib/coordinates';
-=======
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
 import { getContacts, getHistory, getSession, logoutUser } from '../../lib/storage';
 import { Colors, Radius, Shadow } from '../../lib/theme';
 
@@ -38,10 +35,7 @@ export default function Home() {
   const [loading, setLoading]   = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [sosLoading, setSosLoading] = useState(false);
-<<<<<<< HEAD
   const [findingHome, setFindingHome] = useState(false);
-=======
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
 
   // Pulse animation for the SOS ring
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -65,11 +59,8 @@ export default function Home() {
       const [c, h] = await Promise.all([getContacts(), getHistory()]);
       setContacts(c ?? []);
       setHistory(h ?? []);
-<<<<<<< HEAD
     } catch (error) {
       Alert.alert('Could not load home data', error.message || 'Please try again.');
-=======
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -79,7 +70,6 @@ export default function Home() {
   useEffect(() => { load(); }, [load]);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-<<<<<<< HEAD
   const walkHome = async () => {
     const home = session?.home;
     if (hasValidCoordinates(home?.lat, home?.lng)) {
@@ -145,8 +135,6 @@ export default function Home() {
     }
   };
 
-=======
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
   const handleLogout = () => {
     Alert.alert('Sign out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
@@ -172,11 +160,7 @@ export default function Home() {
     }
     Alert.alert(
       '🚨 Send SOS?',
-<<<<<<< HEAD
       `This alerts ${contacts.length} contact${contacts.length > 1 ? 's' : ''} with your live location via WhatsApp (free) - you'll get one-tap send buttons.`,
-=======
-      `This will open your SMS app pre-filled to ${contacts.length} contact${contacts.length > 1 ? 's' : ''} with your live location.`,
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Send SOS', style: 'destructive', onPress: triggerSOS },
@@ -188,10 +172,7 @@ export default function Home() {
     setSosLoading(true);
     try {
       await sendSOS({ contacts, userName: session?.name, reason: 'SOS' });
-<<<<<<< HEAD
       router.push('/sos');
-=======
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
     } catch (e) {
       Alert.alert('SOS failed', e.message);
     } finally {
@@ -297,32 +278,8 @@ export default function Home() {
       {/* ── Walk Me Home ── */}
       <TouchableOpacity
         style={styles.homeCard}
-<<<<<<< HEAD
         onPress={walkHome}
         disabled={findingHome}
-=======
-        onPress={() => {
-          if (session?.home?.lat && session?.home?.lng) {
-            router.push({
-              pathname: '/(tabs)/walk',
-              params: {
-                destLat: String(session.home.lat),
-                destLng: String(session.home.lng),
-                destLabel: session.home.label || 'Home',
-              },
-            });
-          } else {
-            Alert.alert(
-              'Set your home address first',
-              'Add it in your profile so SafetyWalk can route you home in one tap.',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Go to Profile', onPress: () => router.push('/(tabs)/profile') },
-              ]
-            );
-          }
-        }}
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
         activeOpacity={0.88}
       >
         <View style={styles.homeIconWrap}>
@@ -331,7 +288,6 @@ export default function Home() {
         <View style={{ flex: 1 }}>
           <Text style={styles.homeCardTitle}>Walk Me Home</Text>
           <Text style={styles.homeCardSub} numberOfLines={1}>
-<<<<<<< HEAD
             {session?.home?.label || session?.address
               ? `To ${session.home?.label || session.address}`
               : 'Set your home address to enable this'}
@@ -341,12 +297,6 @@ export default function Home() {
           ? <ActivityIndicator size="small" color={Colors.primary} />
           : <Ionicons name="chevron-forward" size={20} color={Colors.textFaint} />
         }
-=======
-            {session?.home?.label ? `To ${session.home.label}` : 'Set your home address to enable this'}
-          </Text>
-        </View>
-        <Ionicons name="chevron-forward" size={20} color={Colors.textFaint} />
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
       </TouchableOpacity>
 
       {/* ── Stats row ── */}

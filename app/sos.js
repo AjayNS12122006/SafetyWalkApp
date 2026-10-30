@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -38,20 +37,6 @@ export default function SosScreen() {
 
   // Always silence the siren when leaving the screen ("I'm Safe" / back)
   useEffect(() => () => { try { player.pause(); } catch {} }, [player]);
-=======
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Animated } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Radius, Shadow } from '../lib/theme';
-
-export default function SosScreen() {
-  const insets = useSafeAreaInsets();
-  const [isStrobeActive, setIsStrobeActive] = useState(true);
-  const [isSirenActive, setIsSirenActive] = useState(true);
-  const flashAnim = new Animated.Value(0);
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
 
   useEffect(() => {
     if (isStrobeActive) {
@@ -108,7 +93,6 @@ export default function SosScreen() {
           </TouchableOpacity>
         </View>
 
-<<<<<<< HEAD
         {lastSOS && (
           <View style={styles.waSection}>
             <Text style={styles.waLabel}>Share via WhatsApp (free, no gateway needed)</Text>
@@ -138,8 +122,6 @@ export default function SosScreen() {
           </View>
         )}
 
-=======
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
         <TouchableOpacity style={styles.cancelBtn} onPress={() => router.back()}>
           <Text style={styles.cancelBtnText}>I'm Safe - Stop Alert</Text>
         </TouchableOpacity>
@@ -173,7 +155,6 @@ const styles = StyleSheet.create({
   btnTextOff: { color: Colors.textMuted },
   cancelBtn: { paddingVertical: 20 },
   cancelBtnText: { color: Colors.textFaint, fontSize: 16, fontWeight: '600', textDecorationLine: 'underline' },
-<<<<<<< HEAD
   waSection: { width: '100%', paddingHorizontal: 30, marginTop: 20, gap: 10 },
   waLabel: { color: Colors.textMuted, fontSize: 13, fontWeight: '600', textAlign: 'center', marginBottom: 4 },
   waContactRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10 },
@@ -188,6 +169,4 @@ const styles = StyleSheet.create({
     borderColor: '#25D366', borderWidth: 1, borderRadius: Radius.md, paddingVertical: 14,
   },
   waPickerText: { color: '#25D366', fontSize: 15, fontWeight: '700' },
-=======
->>>>>>> 9b07a957918647ad28e0a11653ad6aff9c75e78f
 });
