@@ -25,7 +25,7 @@ import { sendSOS } from '../../lib/sos';
 import { getContacts, getSession } from '../../lib/storage';
 import { hasValidCoordinates } from '../../lib/coordinates';
 import { Colors, Radius, Shadow } from '../../lib/theme';
-import { getWalkingRoute, searchPlaces } from '../../lib/ors';
+import { getWalkingRoute, searchPlaces, reverseGeocode } from '../../lib/ors';
 import { findNearbyPlaces, getGoogleWalkingRoute } from '../../lib/googleMaps';
 import { findSafePlaces } from '../../lib/safePlaces';
 import { shareToWhatsApp } from '../../lib/whatsapp';
@@ -330,7 +330,12 @@ export default function Walk() {
     if (walkActive) return;
     const coords = e.nativeEvent.coordinate;
     setDestination(coords);
-    setDestLabel(`${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`);
+    const fallback = `${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`;
+    setDestLabel(fallback);
+    // Swap the raw coordinates for a readable address when we can resolve one.
+    reverseGeocode(coords).then((name) => {
+      if (name) setDestLabel((cur) => (cur === fallback ? name : cur));
+    });
   };
 
   const handleMapLongPress = (e) => {

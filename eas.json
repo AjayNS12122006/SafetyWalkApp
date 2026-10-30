@@ -7,18 +7,23 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "android": { "buildType": "apk" }
+      "android": {
+        "buildType": "apk"
+      }
     },
-   "preview": {
-  "distribution": "internal",
-  "node": "20.19.4",
-  "android": {
-    "buildType": "apk"
-  },
-  "ios": {
-    "simulator": false
-  }
-},
+    "preview": {
+      "distribution": "internal",
+      "node": "20.19.4",
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": false
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://safetywalk-backend.onrender.com"
+      }
+    },
     "production": {
       "autoIncrement": true
     }
